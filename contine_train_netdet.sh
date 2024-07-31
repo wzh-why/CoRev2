@@ -1,6 +1,2 @@
-python tools/benchmarks/detectron2/train/train_net_netdet.py --config-file /configs/benchmarks/detectron2/coco_R_50_C4_1x_moco.yaml --num-gpus 2 MODEL.WEIGHTS tools/benchmarks/detectron2/pretrains/mocov2_our/out_montage_rec_v9.pkl OUTPUT_DIR ./fine_tune_result/NetDet_result/v9
-python tools/benchmarks/detectron2/train/train_net_netdet.py --config-file /configs/benchmarks/detectron2/coco_R_50_C4_1x_moco.yaml --num-gpus 2 MODEL.WEIGHTS tools/benchmarks/detectron2/pretrains/mocov2_our/out_montage_rec_v6.pkl OUTPUT_DIR ./fine_tune_result/NetDet_result/v6
-python tools/benchmarks/detectron2/train/train_net_netdet.py --config-file /configs/benchmarks/detectron2/coco_R_50_C4_1x_moco.yaml --num-gpus 2 MODEL.WEIGHTS tools/benchmarks/detectron2/pretrains/mocov2_our/out_montage_rec_v8.pkl OUTPUT_DIR ./fine_tune_result/NetDet_result/v8
-python tools/benchmarks/detectron2/train/train_net_netdet.py --config-file /configs/benchmarks/detectron2/coco_R_50_C4_1x_moco.yaml --num-gpus 2 MODEL.WEIGHTS tools/benchmarks/detectron2/pretrains/faster-rcnn_R-50_C4_1X/R-50.pkl OUTPUT_DIR ./fine_tune_result/NetDet_result/r50
-python tools/benchmarks/detectron2/train/train_net_netdet.py --config-file /configs/benchmarks/detectron2/coco_R_50_C4_1x_moco.yaml --num-gpus 2 MODEL.WEIGHTS tools/benchmarks/detectron2/pretrains/mocov2_src/out_mocov2_src.pkl OUTPUT_DIR ./fine_tune_result/NetDet_result/mocov2_src;shutdown
+
 
