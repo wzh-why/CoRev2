@@ -1,0 +1,2282 @@
+2023-12-08 20:09:43,299 - mmselfsup - INFO - Environment info:
+------------------------------------------------------------
+sys.platform: linux
+Python: 3.8.0 (default, Nov  6 2019, 21:49:08) [GCC 7.3.0]
+CUDA available: True
+GPU 0: NVIDIA GeForce RTX 3080 Ti
+CUDA_HOME: /usr/local/cuda
+NVCC: Build cuda_11.4.r11.4/compiler.30300941_0
+GCC: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0
+PyTorch: 1.8.1+cu111
+PyTorch compiling details: PyTorch built with:
+  - GCC 7.3
+  - C++ Version: 201402
+  - Intel(R) Math Kernel Library Version 2020.0.0 Product Build 20191122 for Intel(R) 64 architecture applications
+  - Intel(R) MKL-DNN v1.7.0 (Git Hash 7aed236906b1f7a05c0917e5257a1af05e9ff683)
+  - OpenMP 201511 (a.k.a. OpenMP 4.5)
+  - NNPACK is enabled
+  - CPU capability usage: AVX2
+  - CUDA Runtime 11.1
+  - NVCC architecture flags: -gencode;arch=compute_37,code=sm_37;-gencode;arch=compute_50,code=sm_50;-gencode;arch=compute_60,code=sm_60;-gencode;arch=compute_70,code=sm_70;-gencode;arch=compute_75,code=sm_75;-gencode;arch=compute_80,code=sm_80;-gencode;arch=compute_86,code=sm_86
+  - CuDNN 8.0.5
+  - Magma 2.5.2
+  - Build settings: BLAS_INFO=mkl, BUILD_TYPE=Release, CUDA_VERSION=11.1, CUDNN_VERSION=8.0.5, CXX_COMPILER=/opt/rh/devtoolset-7/root/usr/bin/c++, CXX_FLAGS= -Wno-deprecated -fvisibility-inlines-hidden -DUSE_PTHREADPOOL -fopenmp -DNDEBUG -DUSE_KINETO -DUSE_FBGEMM -DUSE_QNNPACK -DUSE_PYTORCH_QNNPACK -DUSE_XNNPACK -O2 -fPIC -Wno-narrowing -Wall -Wextra -Werror=return-type -Wno-missing-field-initializers -Wno-type-limits -Wno-array-bounds -Wno-unknown-pragmas -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-unused-result -Wno-unused-local-typedefs -Wno-strict-overflow -Wno-strict-aliasing -Wno-error=deprecated-declarations -Wno-stringop-overflow -Wno-psabi -Wno-error=pedantic -Wno-error=redundant-decls -Wno-error=old-style-cast -fdiagnostics-color=always -faligned-new -Wno-unused-but-set-variable -Wno-maybe-uninitialized -fno-math-errno -fno-trapping-math -Werror=format -Wno-stringop-overflow, LAPACK_INFO=mkl, PERF_WITH_AVX=1, PERF_WITH_AVX2=1, PERF_WITH_AVX512=1, TORCH_VERSION=1.8.1, USE_CUDA=ON, USE_CUDNN=ON, USE_EXCEPTION_PTR=1, USE_GFLAGS=OFF, USE_GLOG=OFF, USE_MKL=ON, USE_MKLDNN=ON, USE_MPI=OFF, USE_NCCL=ON, USE_NNPACK=ON, USE_OPENMP=ON, 
+
+TorchVision: 0.9.1+cu111
+OpenCV: 4.6.0
+MMCV: 1.4.5
+MMCV Compiler: n/a
+MMCV CUDA Compiler: n/a
+MMSelfSup: 0.7.1+
+------------------------------------------------------------
+
+2023-12-08 20:09:43,877 - mmselfsup - INFO - Distributed training: False
+2023-12-08 20:09:44,445 - mmselfsup - INFO - Config:
+model = dict(
+    type='CoRev2',
+    backbone=dict(
+        type='CoRev2SwinTransformer',
+        arch='B',
+        img_size=224,
+        stage_cfgs=dict(block_cfgs=dict(window_size=6))),
+    neck=dict(type='SimMIMNeck', in_channels=1024, encoder_stride=32),
+    head=dict(type='SimMIMHead', patch_size=4, encoder_in_channels=3),
+    base_momentum=0.99,
+    contra_weight=1.0,
+    mim_weight=1.0,
+    contra_neck=dict(
+        type='CoRev2ContraNeck',
+        in_channels=1024,
+        hid_channels=2048,
+        out_channels=256,
+        num_layers=2,
+        with_bias=False,
+        with_last_bn=True,
+        with_last_bn_affine=False,
+        with_last_bias=False,
+        with_avg_pool=False,
+        vit_backbone=False),
+    contra_head=dict(
+        type='CoRev2ContraHead',
+        predictor=dict(
+            type='NonLinearNeck',
+            in_channels=256,
+            hid_channels=4096,
+            out_channels=256,
+            num_layers=2,
+            with_bias=False,
+            with_last_bn=True,
+            with_last_bn_affine=False,
+            with_last_bias=False,
+            with_avg_pool=False),
+        temperature=0.2))
+data_source = 'DefectData'
+dataset_type = 'ThreeViewDataset'
+img_norm_cfg = dict(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+train_pipeline = [
+    dict(type='RandomResizedCrop', size=192, scale=(0.2, 1.0)),
+    dict(
+        type='RandomAppliedTrans',
+        transforms=[
+            dict(
+                type='ColorJitter',
+                brightness=0.4,
+                contrast=0.4,
+                saturation=0.4,
+                hue=0.1)
+        ],
+        p=0.8),
+    dict(type='RandomGrayscale', p=0.2),
+    dict(type='GaussianBlur', sigma_min=0.1, sigma_max=2.0, p=0.5),
+    dict(type='RandomHorizontalFlip'),
+    dict(type='ToTensor'),
+    dict(
+        type='Normalize',
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225])
+]
+train_rec_pipeline = [
+    dict(
+        type='RandomResizedCrop',
+        size=192,
+        scale=(0.67, 1.0),
+        ratio=(0.75, 1.3333333333333333)),
+    dict(type='RandomHorizontalFlip'),
+    dict(type='ToTensor'),
+    dict(
+        type='Normalize',
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]),
+    dict(
+        type='BlockwiseMaskGenerator',
+        input_size=192,
+        mask_patch_size=32,
+        model_patch_size=4,
+        mask_ratio=0.6)
+]
+prefetch = False
+data = dict(
+    samples_per_gpu=16,
+    workers_per_gpu=12,
+    drop_last=True,
+    train=dict(
+        type='ThreeViewDataset',
+        data_source=dict(
+            type='DefectData',
+            data_prefix=
+            '/home/dataE/pycharmproject/why/mmselfsup_0.7.0/data/Defect/train',
+            ann_file=
+            '/home/dataE/pycharmproject/why/mmselfsup_0.7.0/data/Defect/meta/train.txt'
+        ),
+        num_views=[2, 1],
+        pipelines=[[{
+            'type': 'RandomResizedCrop',
+            'size': 192,
+            'scale': (0.2, 1.0)
+        }, {
+            'type':
+            'RandomAppliedTrans',
+            'transforms': [{
+                'type': 'ColorJitter',
+                'brightness': 0.4,
+                'contrast': 0.4,
+                'saturation': 0.4,
+                'hue': 0.1
+            }],
+            'p':
+            0.8
+        }, {
+            'type': 'RandomGrayscale',
+            'p': 0.2
+        }, {
+            'type': 'GaussianBlur',
+            'sigma_min': 0.1,
+            'sigma_max': 2.0,
+            'p': 0.5
+        }, {
+            'type': 'RandomHorizontalFlip'
+        }, {
+            'type': 'ToTensor'
+        }, {
+            'type': 'Normalize',
+            'mean': [0.485, 0.456, 0.406],
+            'std': [0.229, 0.224, 0.225]
+        }],
+                   [{
+                       'type': 'RandomResizedCrop',
+                       'size': 192,
+                       'scale': (0.67, 1.0),
+                       'ratio': (0.75, 1.3333333333333333)
+                   }, {
+                       'type': 'RandomHorizontalFlip'
+                   }, {
+                       'type': 'ToTensor'
+                   }, {
+                       'type': 'Normalize',
+                       'mean': [0.485, 0.456, 0.406],
+                       'std': [0.229, 0.224, 0.225]
+                   }, {
+                       'type': 'BlockwiseMaskGenerator',
+                       'input_size': 192,
+                       'mask_patch_size': 32,
+                       'model_patch_size': 4,
+                       'mask_ratio': 0.6
+                   }]],
+        prefetch=False))
+optimizer = dict(
+    type='AdamW',
+    lr=0.0008,
+    betas=(0.9, 0.999),
+    weight_decay=0.05,
+    eps=1e-08,
+    paramwise_options=dict(
+        norm=dict(weight_decay=0.0),
+        bias=dict(weight_decay=0.0),
+        absolute_pos_embed=dict(weight_decay=0.0),
+        relative_position_bias_table=dict(weight_decay=0.0)))
+optimizer_config = dict(grad_clip=dict(max_norm=5.0))
+lr_config = dict(
+    policy='CosineAnnealing',
+    min_lr=4e-05,
+    warmup='linear',
+    warmup_iters=10,
+    warmup_ratio=0.004999999999999999,
+    warmup_by_epoch=True,
+    by_epoch=False)
+runner = dict(type='EpochBasedRunner', max_epochs=100)
+checkpoint_config = dict(interval=1, max_keep_ckpts=3, out_dir='')
+log_config = dict(interval=100, hooks=[dict(type='TextLoggerHook')])
+dist_params = dict(backend='nccl')
+cudnn_benchmark = True
+log_level = 'INFO'
+load_from = None
+resume_from = None
+workflow = [('train', 1)]
+persistent_workers = True
+opencv_num_threads = 0
+mp_start_method = 'fork'
+fp16 = dict(loss_scale='dynamic')
+work_dir = './work_dirs/home/corev2_swin-base_1xb256-coslr-100e_mad-192'
+gpu_ids = range(0, 1)
+
+2023-12-08 20:09:44,445 - mmselfsup - INFO - Set random seed to 1929025233, deterministic: False
+2023-12-08 20:09:46,364 - mmselfsup - INFO - initialize CoRev2ContraNeck with init_cfg [{'type': 'Constant', 'val': 1, 'layer': ['_BatchNorm', 'GroupNorm']}]
+2023-12-08 20:09:46,366 - mmselfsup - INFO - initialize CoRev2ContraNeck with init_cfg [{'type': 'Constant', 'val': 1, 'layer': ['_BatchNorm', 'GroupNorm']}]
+2023-12-08 20:09:46,367 - mmselfsup - INFO - initialize NonLinearNeck with init_cfg [{'type': 'Constant', 'val': 1, 'layer': ['_BatchNorm', 'GroupNorm']}]
+Name of parameter - Initialization information
+
+backbone.mask_token - torch.Size([1, 1, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.patch_embed.projection.weight - torch.Size([128, 3, 4, 4]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.patch_embed.projection.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.patch_embed.norm.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.patch_embed.norm.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.0.norm1.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.0.norm1.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 4]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.0.blocks.0.attn.w_msa.qkv.weight - torch.Size([384, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.attn.w_msa.qkv.bias - torch.Size([384]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.attn.w_msa.proj.weight - torch.Size([128, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.attn.w_msa.proj.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.norm2.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.0.norm2.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.0.ffn.layers.0.0.weight - torch.Size([512, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.ffn.layers.0.0.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.ffn.layers.1.weight - torch.Size([128, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.0.ffn.layers.1.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.norm1.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.1.norm1.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 4]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.0.blocks.1.attn.w_msa.qkv.weight - torch.Size([384, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.attn.w_msa.qkv.bias - torch.Size([384]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.attn.w_msa.proj.weight - torch.Size([128, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.attn.w_msa.proj.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.norm2.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.1.norm2.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.blocks.1.ffn.layers.0.0.weight - torch.Size([512, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.ffn.layers.0.0.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.ffn.layers.1.weight - torch.Size([128, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.blocks.1.ffn.layers.1.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.0.downsample.norm.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.downsample.norm.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.0.downsample.reduction.weight - torch.Size([256, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.0.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 8]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.1.blocks.0.attn.w_msa.qkv.weight - torch.Size([768, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.attn.w_msa.qkv.bias - torch.Size([768]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.attn.w_msa.proj.weight - torch.Size([256, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.attn.w_msa.proj.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.0.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.0.ffn.layers.0.0.weight - torch.Size([1024, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.ffn.layers.0.0.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.ffn.layers.1.weight - torch.Size([256, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.0.ffn.layers.1.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.1.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 8]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.1.blocks.1.attn.w_msa.qkv.weight - torch.Size([768, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.attn.w_msa.qkv.bias - torch.Size([768]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.attn.w_msa.proj.weight - torch.Size([256, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.attn.w_msa.proj.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.1.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.blocks.1.ffn.layers.0.0.weight - torch.Size([1024, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.ffn.layers.0.0.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.ffn.layers.1.weight - torch.Size([256, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.blocks.1.ffn.layers.1.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.1.downsample.norm.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.downsample.norm.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.1.downsample.reduction.weight - torch.Size([512, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.0.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.0.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.0.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.0.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.0.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.1.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.1.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.1.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.1.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.1.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.2.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.2.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.2.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.2.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.2.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.2.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.3.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.3.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.3.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.3.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.3.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.3.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.4.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.4.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.4.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.4.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.4.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.4.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.5.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.5.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.5.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.5.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.5.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.5.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.6.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.6.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.6.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.6.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.6.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.6.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.7.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.7.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.7.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.7.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.7.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.7.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.8.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.8.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.8.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.8.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.8.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.8.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.9.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.9.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.9.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.9.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.9.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.9.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.10.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.10.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.10.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.10.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.10.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.10.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.11.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.11.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.11.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.11.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.11.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.11.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.12.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.12.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.12.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.12.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.12.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.12.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.13.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.13.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.13.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.13.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.13.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.13.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.14.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.14.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.14.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.14.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.14.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.14.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.15.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.15.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.15.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.15.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.15.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.15.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.16.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.16.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.16.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.16.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.16.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.16.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.17.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.17.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.2.blocks.17.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.17.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.blocks.17.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.blocks.17.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.2.downsample.norm.weight - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.downsample.norm.bias - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.2.downsample.reduction.weight - torch.Size([1024, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.norm1.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.0.norm1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 32]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.3.blocks.0.attn.w_msa.qkv.weight - torch.Size([3072, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.attn.w_msa.qkv.bias - torch.Size([3072]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.attn.w_msa.proj.weight - torch.Size([1024, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.attn.w_msa.proj.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.norm2.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.0.norm2.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.0.ffn.layers.0.0.weight - torch.Size([4096, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.ffn.layers.0.0.bias - torch.Size([4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.ffn.layers.1.weight - torch.Size([1024, 4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.0.ffn.layers.1.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.norm1.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.1.norm1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 32]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone.stages.3.blocks.1.attn.w_msa.qkv.weight - torch.Size([3072, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.attn.w_msa.qkv.bias - torch.Size([3072]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.attn.w_msa.proj.weight - torch.Size([1024, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.attn.w_msa.proj.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.norm2.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.1.norm2.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.stages.3.blocks.1.ffn.layers.0.0.weight - torch.Size([4096, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.ffn.layers.0.0.bias - torch.Size([4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.ffn.layers.1.weight - torch.Size([1024, 4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.stages.3.blocks.1.ffn.layers.1.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone.norm3.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone.norm3.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.mask_token - torch.Size([1, 1, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.patch_embed.projection.weight - torch.Size([128, 3, 4, 4]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.patch_embed.projection.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.patch_embed.norm.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.patch_embed.norm.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.0.norm1.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.0.norm1.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 4]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.0.blocks.0.attn.w_msa.qkv.weight - torch.Size([384, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.attn.w_msa.qkv.bias - torch.Size([384]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.attn.w_msa.proj.weight - torch.Size([128, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.attn.w_msa.proj.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.norm2.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.0.norm2.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.0.ffn.layers.0.0.weight - torch.Size([512, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.ffn.layers.0.0.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.ffn.layers.1.weight - torch.Size([128, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.0.ffn.layers.1.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.norm1.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.1.norm1.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 4]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.0.blocks.1.attn.w_msa.qkv.weight - torch.Size([384, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.attn.w_msa.qkv.bias - torch.Size([384]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.attn.w_msa.proj.weight - torch.Size([128, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.attn.w_msa.proj.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.norm2.weight - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.1.norm2.bias - torch.Size([128]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.blocks.1.ffn.layers.0.0.weight - torch.Size([512, 128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.ffn.layers.0.0.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.ffn.layers.1.weight - torch.Size([128, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.blocks.1.ffn.layers.1.bias - torch.Size([128]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.0.downsample.norm.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.downsample.norm.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.0.downsample.reduction.weight - torch.Size([256, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.0.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 8]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.1.blocks.0.attn.w_msa.qkv.weight - torch.Size([768, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.attn.w_msa.qkv.bias - torch.Size([768]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.attn.w_msa.proj.weight - torch.Size([256, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.attn.w_msa.proj.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.0.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.0.ffn.layers.0.0.weight - torch.Size([1024, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.ffn.layers.0.0.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.ffn.layers.1.weight - torch.Size([256, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.0.ffn.layers.1.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.norm1.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.1.norm1.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 8]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.1.blocks.1.attn.w_msa.qkv.weight - torch.Size([768, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.attn.w_msa.qkv.bias - torch.Size([768]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.attn.w_msa.proj.weight - torch.Size([256, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.attn.w_msa.proj.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.norm2.weight - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.1.norm2.bias - torch.Size([256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.blocks.1.ffn.layers.0.0.weight - torch.Size([1024, 256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.ffn.layers.0.0.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.ffn.layers.1.weight - torch.Size([256, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.blocks.1.ffn.layers.1.bias - torch.Size([256]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.1.downsample.norm.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.downsample.norm.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.1.downsample.reduction.weight - torch.Size([512, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.0.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.0.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.0.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.0.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.0.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.1.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.1.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.1.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.1.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.1.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.2.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.2.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.2.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.2.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.2.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.2.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.3.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.3.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.3.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.3.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.3.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.3.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.4.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.4.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.4.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.4.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.4.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.4.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.5.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.5.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.5.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.5.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.5.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.5.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.6.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.6.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.6.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.6.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.6.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.6.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.7.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.7.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.7.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.7.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.7.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.7.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.8.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.8.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.8.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.8.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.8.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.8.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.9.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.9.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.9.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.9.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.9.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.9.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.10.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.10.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.10.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.10.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.10.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.10.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.11.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.11.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.11.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.11.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.11.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.11.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.12.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.12.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.12.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.12.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.12.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.12.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.13.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.13.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.13.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.13.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.13.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.13.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.14.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.14.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.14.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.14.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.14.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.14.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.15.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.15.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.15.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.15.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.15.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.15.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.16.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.16.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.16.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.16.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.16.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.16.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.norm1.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.17.norm1.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.17.attn.w_msa.relative_position_bias_table - torch.Size([121, 16]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.2.blocks.17.attn.w_msa.qkv.weight - torch.Size([1536, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.attn.w_msa.qkv.bias - torch.Size([1536]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.attn.w_msa.proj.weight - torch.Size([512, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.attn.w_msa.proj.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.norm2.weight - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.17.norm2.bias - torch.Size([512]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.blocks.17.ffn.layers.0.0.weight - torch.Size([2048, 512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.ffn.layers.0.0.bias - torch.Size([2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.ffn.layers.1.weight - torch.Size([512, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.blocks.17.ffn.layers.1.bias - torch.Size([512]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.2.downsample.norm.weight - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.downsample.norm.bias - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.2.downsample.reduction.weight - torch.Size([1024, 2048]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.norm1.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.0.norm1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.0.attn.w_msa.relative_position_bias_table - torch.Size([121, 32]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.3.blocks.0.attn.w_msa.qkv.weight - torch.Size([3072, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.attn.w_msa.qkv.bias - torch.Size([3072]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.attn.w_msa.proj.weight - torch.Size([1024, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.attn.w_msa.proj.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.norm2.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.0.norm2.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.0.ffn.layers.0.0.weight - torch.Size([4096, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.ffn.layers.0.0.bias - torch.Size([4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.ffn.layers.1.weight - torch.Size([1024, 4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.0.ffn.layers.1.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.norm1.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.1.norm1.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.1.attn.w_msa.relative_position_bias_table - torch.Size([121, 32]): 
+Initialized by user-defined `init_weights` in WindowMSA  
+
+backbone_k.stages.3.blocks.1.attn.w_msa.qkv.weight - torch.Size([3072, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.attn.w_msa.qkv.bias - torch.Size([3072]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.attn.w_msa.proj.weight - torch.Size([1024, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.attn.w_msa.proj.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.norm2.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.1.norm2.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.stages.3.blocks.1.ffn.layers.0.0.weight - torch.Size([4096, 1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.ffn.layers.0.0.bias - torch.Size([4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.ffn.layers.1.weight - torch.Size([1024, 4096]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.stages.3.blocks.1.ffn.layers.1.bias - torch.Size([1024]): 
+Initialized by user-defined `init_weights` in CoRev2SwinTransformer  
+
+backbone_k.norm3.weight - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+backbone_k.norm3.bias - torch.Size([1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+neck.decoder.0.weight - torch.Size([3072, 1024, 1, 1]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+neck.decoder.0.bias - torch.Size([3072]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck.fc0.weight - torch.Size([2048, 1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck.bn0.weight - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck.bn0.bias - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck.fc1.weight - torch.Size([256, 2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck_k.fc0.weight - torch.Size([2048, 1024]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck_k.bn0.weight - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck_k.bn0.bias - torch.Size([2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_neck_k.fc1.weight - torch.Size([256, 2048]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_head.predictor.fc0.weight - torch.Size([4096, 256]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_head.predictor.bn0.weight - torch.Size([4096]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_head.predictor.bn0.bias - torch.Size([4096]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+
+contra_head.predictor.fc1.weight - torch.Size([256, 4096]): 
+The value is the same before and after calling `init_weights` of CoRev2  
+2023-12-08 20:09:49,235 - mmselfsup - INFO - Start running, host: scut217@scut217-System-Product-Name, work_dir: /home/dataE/pycharmproject/why/mmselfsup-0.7.0备份/mmselfsup-0.7.0/tools/work_dirs/home/corev2_swin-base_1xb256-coslr-100e_mad-192
+2023-12-08 20:09:49,235 - mmselfsup - INFO - Hooks will be executed in the following order:
+before_run:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(ABOVE_NORMAL) GradAccumFp16OptimizerHook         
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_epoch:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_train_iter:
+(VERY_HIGH   ) CosineAnnealingLrUpdaterHook       
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_train_iter:
+(ABOVE_NORMAL) GradAccumFp16OptimizerHook         
+(NORMAL      ) CheckpointHook                     
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_train_epoch:
+(NORMAL      ) CheckpointHook                     
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_epoch:
+(LOW         ) IterTimerHook                      
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+before_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_iter:
+(LOW         ) IterTimerHook                      
+ -------------------- 
+after_val_epoch:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+after_run:
+(VERY_LOW    ) TextLoggerHook                     
+ -------------------- 
+2023-12-08 20:09:49,235 - mmselfsup - INFO - workflow: [('train', 1)], max: 100 epochs
+2023-12-08 20:09:49,238 - mmselfsup - INFO - Checkpoints will be saved to /home/dataE/pycharmproject/why/mmselfsup-0.7.0备份/mmselfsup-0.7.0/tools/work_dirs/home/corev2_swin-base_1xb256-coslr-100e_mad-192 by HardDiskBackend.
+2023-12-08 20:10:26,678 - mmselfsup - INFO - Epoch [1][100/3125]	lr: 6.522e-06, eta: 1 day, 8:29:05, time: 0.374, data_time: 0.046, memory: 8095, loss_contra: 2.0781, loss_rec: 0.9043, loss: 2.9824, grad_norm: 13.9147

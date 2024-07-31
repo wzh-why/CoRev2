@@ -1,0 +1,14 @@
+{
+  "config": "/home/dataE/pycharmproject/why/mmselfsup_0.7.0/configs/selfsup/corev2/corev2_swin-base_1xb256-coslr-100e_mad-192.py",
+  "work_dir": null,
+  "resume_from": null,
+  "gpus": 1,
+  "gpu_ids": null,
+  "gpu_id": 0,
+  "seed": null,
+  "diff_seed": false,
+  "deterministic": false,
+  "cfg_options": null,
+  "launcher": "none",
+  "local_rank": 0
+}
